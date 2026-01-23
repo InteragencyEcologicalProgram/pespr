@@ -1,3 +1,6 @@
+# Run to update "phyto taxonomy" from csv data
+# Saves under "data/phyto_taxonomy.rda"
+
 library(tidyverse)
 source('R/global_funcs.R')
 
