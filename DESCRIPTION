@@ -15,3 +15,24 @@ LazyData: true
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+Imports: 
+    data.table,
+    dplyr,
+    EDIutils,
+    ggplot2,
+    glue,
+    hms,
+    janitor,
+    lubridate,
+    memoise,
+    purrr,
+    readr,
+    readxl,
+    rlang,
+    scales,
+    sp,
+    stats,
+    stringi,
+    stringr,
+    tibble,
+    tidyr

@@ -912,8 +912,12 @@ plot_simper_summary <- function(df, sim,
 # map regions
 convert_to_sf <- function(df, sf_delta = NULL) {
   
+  # load in delta regional data
   if (is.null(sf_delta)) {
-    sf_delta <- deltamapr::R_EDSM_Subregions_Mahardja
+    if (!exists('delta_geom', envir = environment(), inherits = FALSE)) {
+      utils::data('delta_geom', package = 'pespr', envir = environment())
+    }
+    sf_delta <- get('delta_geom', envir = environment())
   }
   
   # convert df to SpatialPointsDataFrame
