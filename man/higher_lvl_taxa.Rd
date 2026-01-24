@@ -43,7 +43,7 @@ The behavior of the final \code{Taxon} column depends on \code{std_type}:
 \item Taxa such as \code{"Genus cf. Species"} are rewritten as \code{"Genus sp."}.
 \item Taxa of the form \code{"cf. Genus Species"} are preserved as-is.
 \item \code{"cf. Genus"} entries are standardized to \code{"Unknown <algal group>"} using
-a predefined singular mapping (e.g., \code{"cf. Fragilaria"} → \code{"Unknown pennate diatom"}).
+a predefined singular mapping (e.g., \code{"cf. Fragilaria"} -> \code{"Unknown pennate diatom"}).
 }
 }
 
