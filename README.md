@@ -1,7 +1,7 @@
 # pespr
 Package related to PESP
 
-- delta_geom: built from deltamapr::R_EDSM_Subregions_Mahardja (see delta-geom.R)
+- delta_geom: built from deltamapr::R_EDSM_Subregions_Mahardja (see build-delta-geom.R)
 - phyto_taxonomy: built from PESP taxonomy file, info sourced from AlgaeBase (see build-phyto-taxonomy.R)
 
 <!-- badges: start -->

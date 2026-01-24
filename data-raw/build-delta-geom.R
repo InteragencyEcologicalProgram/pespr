@@ -1,4 +1,4 @@
-# data-raw/build-region-geom.R
+# data-raw/build-delta-geom.R
 # purpose: build delta_geom dataset for pespr
 # source: deltamapr::R_EDSM_Subregions_Mahardja
 # retrieved: 2026-01-23
