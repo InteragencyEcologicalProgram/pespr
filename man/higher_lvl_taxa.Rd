@@ -51,7 +51,7 @@ The original name is preserved in an \code{OrigTaxon} column (added if missing).
 }
 \details{
 \itemize{
-\item Synonym resolution is \strong{not} handled here — this function only appends classification fields.
+\item Synonym resolution is \strong{not} handled here - this function only appends classification fields.
 \item Matching is case-insensitive and diacritic-insensitive.
 \item If \code{after_col} is supplied, taxonomy columns are relocated immediately after it.
 \item For \code{std_type = "pesp"}, \code{AlgalGroup} field is mapped to its singular form when replacing \code{"cf."} taxa.

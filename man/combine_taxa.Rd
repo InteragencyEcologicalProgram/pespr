@@ -32,8 +32,8 @@ are aggregated into a single record:
 
 The returned dataframe includes a \code{log} attribute containing:
 \itemize{
-\item \strong{$combined_taxa} — a dataframe listing the groups that were merged
-\item \strong{$combined_conflicts} — a dataframe of columns with multiple distinct values within a group
+\item \strong{$combined_taxa} - a dataframe listing the groups that were merged
+\item \strong{$combined_conflicts} - a dataframe of columns with multiple distinct values within a group
 }
 }
 \description{
@@ -55,13 +55,13 @@ the resulting \code{OrigTaxon} is set to \code{NA}.
 \details{
 Aggregation rules:
 \itemize{
-\item \strong{Notes} — unique non-\code{"NoNote"} values are combined; \code{"MultipleEntries"} appended only
+\item \strong{Notes} - unique non-\code{"NoNote"} values are combined; \code{"MultipleEntries"} appended only
 when multiple rows were merged (\code{.n_in_group > 1})
-\item \strong{QualityCheck} — unique non-\code{"NoCode"} values combined (no extra flags)
-\item \strong{Debris} — ordered by category (\verb{High > Moderate > Low > None > Unknown})
-\item \strong{PhytoForm} — unique forms combined alphabetically
-\item \strong{GALD} — maximum non-missing value is retained
-\item \strong{OrigTaxon} — concatenated with \code{"; "} if multiple distinct values exist;
+\item \strong{QualityCheck} - unique non-\code{"NoCode"} values combined (no extra flags)
+\item \strong{Debris} - ordered by category (\verb{High > Moderate > Low > None > Unknown})
+\item \strong{PhytoForm} - unique forms combined alphabetically
+\item \strong{GALD} - maximum non-missing value is retained
+\item \strong{OrigTaxon} - concatenated with \code{"; "} if multiple distinct values exist;
 remains \code{NA} if all source values were missing
 }
 }

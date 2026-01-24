@@ -11,6 +11,9 @@
 #' @noRd
 NULL
 
+bullet <- '\u2022'
+arrow  <- '\u2192'
+
 # Input/Output Helpers ----------------------------------------------------
 
 #' @noRd
@@ -43,7 +46,7 @@ bullet_message <- function(header, items) {
   if (length(items) == 0) {
     message(header)
   } else {
-    message(paste(c(header, paste0('  • ', items)), collapse = '\n'))
+    message(paste(c(header, paste0(bullet, ' ', items)), collapse = '\n'))
   }
 }
 
@@ -232,7 +235,7 @@ rename_cols <- function(df, rename_map = NULL) {
   df <- df %>%
     rename(!!!rename_map)
   
-  bullet_message('Renamed columns:', paste0(rename_map, ' → ', names(rename_map)))
+  bullet_message('Renamed columns:', paste0(rename_map, arrow, ' ', names(rename_map)))
 
   return(df)
 }
@@ -274,7 +277,7 @@ rename_values <- function(df, column, rename_map) {
   # display message
   rename_count <- paste(
     paste('Renamed values in column:', column),
-    paste0('  • ', rename_map, ' → ', names(rename_map), collapse = '\n'),
+    paste0(bullet, ' ', rename_map, arrow, ' ', names(rename_map), collapse = '\n'),
     paste('Changed', changed_count, 'out of', total_count, 'values'),
     sep = '\n'
   )
@@ -339,7 +342,7 @@ convert_to_pst <- function(df, orig_tz = 'PDT/PST') {
     filter(!time_missing) %>%
     mutate(Date_orig = Date, Time_orig = Time_chr) %>%
     filter(Time_orig != Time_new | Date != Date_new) %>%
-    select(Date = Date_orig) %>%
+    dplyr::select(Date = Date_orig) %>%
     distinct()
   
   # update and clean
@@ -502,7 +505,7 @@ coalesce_cols <- function(df, combine_map = NULL) {
   if (length(combined) > 0) {
     combine_message <- paste(
       'Coalesced columns:',
-      paste0('  • ', combined, collapse = '\n'),
+      paste0(bullet, ' ', combined, collapse = '\n'),
       sep = '\n'
     )
     message(combine_message)
@@ -1147,7 +1150,7 @@ add_meta_col <- function(df, program, col_name, match_cols = NULL, read_func = r
       criteria_str <- ''
     }
     
-    messages <- c(messages, paste0('  • ', date_range, criteria_str, ': ', value))
+    messages <- c(messages, paste0(bullet, ' ', date_range, criteria_str, ': ', value))
   }
   
   message(paste(messages, collapse = '\n'))
@@ -1188,7 +1191,7 @@ add_id_col <- function(df, loc_col) {
                    'epiphytic' = 'E',
                    .default = DepthType
       ),
-      # parse SampleDepth — may include units (m or ft)
+      # parse SampleDepth - may include units (m or ft)
       SampleDepth = case_when(
         str_detect(as.character(SampleDepth), regex('m(eter)?s?$', ignore_case = TRUE)) ~
           suppressWarnings(as.numeric(str_extract(SampleDepth, '[0-9.]+'))),
@@ -1648,7 +1651,7 @@ update_synonyms <- function(df, read_func = read_phyto_taxa) {
 #' A dataframe with additional taxa columns and a `log` attribute containing unmatched taxa
 #' 
 #' @details
-#' - Synonym resolution is **not** handled here — this function only appends classification fields.  
+#' - Synonym resolution is **not** handled here - this function only appends classification fields.  
 #' - Matching is case-insensitive and diacritic-insensitive.  
 #' - If `after_col` is supplied, taxonomy columns are relocated immediately after it.  
 #' - For `std_type = "pesp"`, `AlgalGroup` field is mapped to its singular form when replacing `"cf."` taxa.
@@ -1886,19 +1889,19 @@ higher_lvl_taxa <- function(df, after_col = NULL, std_type, read_func = read_phy
 #' - Higher-level mismatches are labeled as `"Unknown <level>"`
 #'
 #' The returned dataframe includes a `log` attribute containing:
-#' - **$combined_taxa** — a dataframe listing the groups that were merged  
-#' - **$combined_conflicts** — a dataframe of columns with multiple distinct values within a group
+#' - **$combined_taxa** - a dataframe listing the groups that were merged  
+#' - **$combined_conflicts** - a dataframe of columns with multiple distinct values within a group
 #'
 #' @details
 #' Aggregation rules:
 #'
-#' - **Notes** — unique non-`"NoNote"` values are combined; `"MultipleEntries"` appended only
+#' - **Notes** - unique non-`"NoNote"` values are combined; `"MultipleEntries"` appended only
 #'   when multiple rows were merged (`.n_in_group > 1`)
-#' - **QualityCheck** — unique non-`"NoCode"` values combined (no extra flags)
-#' - **Debris** — ordered by category (`High > Moderate > Low > None > Unknown`)
-#' - **PhytoForm** — unique forms combined alphabetically
-#' - **GALD** — maximum non-missing value is retained
-#' - **OrigTaxon** — concatenated with `"; "` if multiple distinct values exist;
+#' - **QualityCheck** - unique non-`"NoCode"` values combined (no extra flags)
+#' - **Debris** - ordered by category (`High > Moderate > Low > None > Unknown`)
+#' - **PhytoForm** - unique forms combined alphabetically
+#' - **GALD** - maximum non-missing value is retained
+#' - **OrigTaxon** - concatenated with `"; "` if multiple distinct values exist;
 #'   remains `NA` if all source values were missing
 #'
 #' @importFrom data.table as.data.table uniqueN melt fifelse
