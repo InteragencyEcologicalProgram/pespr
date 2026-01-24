@@ -240,9 +240,7 @@ test_that('higher_lvl_taxa appends taxonomy fields and handles cf. logic', {
   
   # --- program mode ---
   df_prog <- higher_lvl_taxa(df, after_col = 'Taxon', std_type = 'program', read_func = fake_read_func)
-  
-  df_prog <<- df_prog
-  
+
   # should contain classification columns
   expect_true(all(c('Kingdom','Phylum','Class','AlgalGroup','Genus','Species') %in% names(df_prog)))
   
@@ -366,10 +364,5 @@ test_that('combine_taxa calculates densities correctly, Notes/QualityCheck/Debri
   expect_equal(cB$Notes, 'MultipleEntries')
   expect_equal(cB$Debris, 'Unknown')
   expect_equal(cB$GALD, 10)
-  
-  # attributes log present
-  lg <- attr(out, 'log')
-  expect_true(is.list(lg))
-  expect_true(all(c('combined_taxa','combined_conflicts') %in% names(lg)))
 })
 

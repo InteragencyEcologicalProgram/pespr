@@ -1499,13 +1499,13 @@ update_synonyms <- function(df, read_func = read_phyto_taxa) {
       CurrentTaxonNorm = normalize_taxon(CurrentTaxon)
     )
   
-  # synonym map (normalized keys → normalized values)
+  # synonym map (normalized keys -> normalized values)
   synonym_map <- setNames(
     as.character(df_syn$CurrentTaxonNorm), 
     df_syn$PureTaxonNorm
   )
   
-  # proper case map (normalized → proper capitalization)
+  # proper case map (normalized -> proper capitalization)
   proper_case_map <- setNames(
     as.character(df_syn$PureTaxon),
     df_syn$PureTaxonNorm
@@ -1635,7 +1635,7 @@ update_synonyms <- function(df, read_func = read_phyto_taxa) {
 #'   - Taxa such as `"Genus cf. Species"` are rewritten as `"Genus sp."`.
 #'   - Taxa of the form `"cf. Genus Species"` are preserved as-is.
 #'   - `"cf. Genus"` entries are standardized to `"Unknown <algal group>"` using
-#'     a predefined singular mapping (e.g., `"cf. Fragilaria"` → `"Unknown pennate diatom"`).
+#'     a predefined singular mapping (e.g., `"cf. Fragilaria"` -> `"Unknown pennate diatom"`).
 #'
 #' The original name is preserved in an `OrigTaxon` column (added if missing).
 #'
