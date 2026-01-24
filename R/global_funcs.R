@@ -721,7 +721,7 @@ add_qc_col <- function(df, comment_col = 'Comments', key_cols = c('Date', 'Stati
 #' @importFrom stats median mad
 #' @importFrom lubridate year
 #' @export
-flag_outliers <- function(df, col, station_col = Station, cutoff = 3, add_flag = FALSE, show_plot = TRUE) {
+flag_outliers <- function(df, col, station_col = Station, cutoff = 3, add_flag = TRUE, show_plot = TRUE) {
   col <- enquo(col)
   col_name <- as_name(col)
   station <- enquo(station_col)
@@ -805,7 +805,7 @@ flag_outliers <- function(df, col, station_col = Station, cutoff = 3, add_flag =
   existing_log <- attr(df, 'log')
   outlier_rows <- df_out %>%
     filter(str_detect(QualityCheck, paste0('Outlier', switch_label))) %>%
-    select(Date, !!station, Taxon, !!col, QualityCheck, Notes)
+    select(Date, !!station, Taxon, !!col, QualityCheck, any_of('Notes'))
   
   attr(df_out, 'log') <- c(
     existing_log,

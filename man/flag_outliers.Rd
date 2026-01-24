@@ -9,7 +9,7 @@ flag_outliers(
   col,
   station_col = Station,
   cutoff = 3,
-  add_flag = FALSE,
+  add_flag = TRUE,
   show_plot = TRUE
 )
 }
