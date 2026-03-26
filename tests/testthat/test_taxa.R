@@ -91,10 +91,9 @@ test_that('correct_taxon_typos standardizes and corrects taxa names properly', {
     )
   )
   
-  # use custom inline read_func returning our fake typo table
-  fake_reader <- function(path) df_typos
-  
-  cleaned <- correct_taxon_typos(df, read_func = fake_reader)
+  local_mocked_bindings(get_phyto_typos = function() df_typos, .env = asNamespace('pespr'))
+
+  cleaned <- correct_taxon_typos(df)
 
   # structure
   expect_s3_class(cleaned, 'tbl_df')
@@ -153,9 +152,8 @@ test_that('update_synonyms resolves and logs synonym chains correctly', {
     )
   )
   
-  # fake reader
-  fake_reader <- function() df_phyto
-  
+  local_mocked_bindings(read_phyto_taxa = function() df_phyto, .env = asNamespace('pespr'))
+
   # input dataframe
   df <- tibble(
     Taxon = c(
@@ -171,7 +169,7 @@ test_that('update_synonyms resolves and logs synonym chains correctly', {
   )
   
   # call function
-  cleaned <- update_synonyms(df, read_func = fake_reader)
+  cleaned <- update_synonyms(df)
   
   # --- structure checks ---
   expect_s3_class(cleaned, 'tbl_df')
@@ -205,8 +203,7 @@ test_that('update_synonyms resolves and logs synonym chains correctly', {
 
 test_that('higher_lvl_taxa appends taxonomy fields and handles cf. logic', {
   # fake taxonomy table
-  fake_read_func <- function() {
-    tibble(
+  fake_taxa <- tibble(
       Taxon = c(
         'Chroococcus dispersus',
         'Chroococcus sp.',
@@ -221,9 +218,10 @@ test_that('higher_lvl_taxa appends taxonomy fields and handles cf. logic', {
       Genus = c('Chroococcus','Chroococcus','Gonyaulax','Sourniaea','Sourniaea'),
       Species = c('dispersus','sp.','verior','diacantha','sp.'),
       CurrentTaxon = c(NA,NA,'Sourniaea diacantha',NA,NA)
-    )
-  }
-  
+  )
+
+  local_mocked_bindings(read_phyto_taxa = function() fake_taxa, .env = asNamespace('pespr'))
+
   # sample df
   df <- tibble(
     OrigTaxon = c(NA,NA,'Gonyaulax verior',NA,'Gonyaulax verior',NA,NA),
@@ -239,7 +237,7 @@ test_that('higher_lvl_taxa appends taxonomy fields and handles cf. logic', {
   )
   
   # --- program mode ---
-  df_prog <- higher_lvl_taxa(df, after_col = 'Taxon', std_type = 'program', read_func = fake_read_func)
+  df_prog <- higher_lvl_taxa(df, after_col = 'Taxon', std_type = 'program')
 
   # should contain classification columns
   expect_true(all(c('Kingdom','Phylum','Class','AlgalGroup','Genus','Species') %in% names(df_prog)))
@@ -253,7 +251,7 @@ test_that('higher_lvl_taxa appends taxonomy fields and handles cf. logic', {
   expect_true(any(grepl('Sourniaea diacantha', df_prog$Taxon)))
   
   # --- PESP mode ---
-  df_pesp <- higher_lvl_taxa(df, after_col = 'Taxon', std_type = 'pesp', read_func = fake_read_func)
+  df_pesp <- higher_lvl_taxa(df, after_col = 'Taxon', std_type = 'pesp')
   
   # capitalization normalized
   expect_true(any(grepl('Sourniaea diacantha', df_prog$Taxon)))

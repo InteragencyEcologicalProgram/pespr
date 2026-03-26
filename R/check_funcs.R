@@ -527,7 +527,7 @@ unique_check <- function(df, col) {
 #' @importFrom dplyr mutate distinct count left_join
 #' @importFrom lubridate floor_date year month
 #' @importFrom tidyr expand_grid
-#' @importFrom ggplot2 ggplot aes geom_tile scale_fill_distiller scale_y_continuous theme_minimal labs theme element_text
+#' @importFrom ggplot2 ggplot aes geom_tile scale_fill_distiller scale_y_continuous theme_minimal labs theme element_text element_blank
 #' @export
 check_station_count <- function(df) {
   df <- df %>%
@@ -581,7 +581,7 @@ check_station_count <- function(df) {
 #' @importFrom dplyr mutate distinct count left_join
 #' @importFrom lubridate floor_date year
 #' @importFrom tidyr expand_grid
-#' @importFrom ggplot2 ggplot aes geom_tile scale_fill_distiller scale_x_continuous theme_minimal labs theme element_text
+#' @importFrom ggplot2 ggplot aes geom_tile scale_fill_distiller scale_x_continuous theme_minimal labs theme element_text element_blank
 #' @export
 check_sampling_freq <- function(df) {
   df <- df %>%

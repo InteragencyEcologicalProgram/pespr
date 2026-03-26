@@ -21,8 +21,12 @@ flag_outliers(
 (must be one of \code{Cells_per_mL}, \code{Units_per_mL}, or
 \code{Biovolume_per_mL})}
 
+\item{station_col}{unquoted column name for the station grouping variable (default = \code{Station})}
+
 \item{cutoff}{numeric value for the absolute robust z-score threshold
 used to identify outliers (default = 3)}
+
+\item{add_flag}{logical; if \code{TRUE}, updates \code{QualityCheck} for flagged rows (default = TRUE)}
 
 \item{show_plot}{logical; if \code{TRUE}, prints a scatter plot with
 flagged outliers in red (default = TRUE)}

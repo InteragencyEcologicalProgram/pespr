@@ -13,6 +13,6 @@ read_meta_file(program_name)
 A dataframe of filtered metadata with no missing ending dates
 }
 \description{
-Reads in the PESP metadata Excel file and filters it to include only rows for the specified program.
+Filters the \code{survey_metadata} package data to rows for the specified program.
 Any missing \verb{Ending Date} values are replaced with the current system date.
 }

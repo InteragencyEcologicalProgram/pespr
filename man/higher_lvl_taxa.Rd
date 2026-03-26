@@ -4,7 +4,7 @@
 \alias{higher_lvl_taxa}
 \title{Add higher-level taxonomic information}
 \usage{
-higher_lvl_taxa(df, after_col = NULL, std_type, read_func = read_phyto_taxa)
+higher_lvl_taxa(df, after_col = NULL, std_type)
 }
 \arguments{
 \item{df}{A dataframe with a \code{Taxon} column to enrich with classification metadata.}
@@ -12,8 +12,6 @@ higher_lvl_taxa(df, after_col = NULL, std_type, read_func = read_phyto_taxa)
 \item{after_col}{Optional column name after which to insert the taxonomy fields (e.g., \code{"Taxon"}).}
 
 \item{std_type}{Character; either \code{"program"} (default) or \code{"pesp"}, controlling how \code{cf.} taxa are standardized.}
-
-\item{read_func}{Internal argument used for testing; defaults to \code{read_phyto_taxa}.}
 }
 \value{
 A dataframe with additional taxa columns and a \code{log} attribute containing unmatched taxa

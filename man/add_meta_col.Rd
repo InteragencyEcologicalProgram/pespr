@@ -4,13 +4,7 @@
 \alias{add_meta_col}
 \title{Add Metadata Column for Program}
 \usage{
-add_meta_col(
-  df,
-  program,
-  col_name,
-  match_cols = NULL,
-  read_func = read_meta_file
-)
+add_meta_col(df, program, col_name, match_cols = NULL)
 }
 \arguments{
 \item{df}{A dataframe to which the metadata column will be added}
@@ -19,7 +13,7 @@ add_meta_col(
 
 \item{col_name}{A column name (unquoted) used to perform the join with the metadata sheet}
 
-\item{read_func}{Internal argument used for testing; defaults to \code{read_meta_file}}
+\item{match_cols}{Optional character vector of additional column names to join on beyond the date range}
 }
 \value{
 A dataframe with the specified metadata column added

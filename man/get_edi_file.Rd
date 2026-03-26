@@ -9,7 +9,7 @@ get_edi_file(pkg_id, fname)
 \arguments{
 \item{pkg_id}{The EDI package ID (e.g., "1017")}
 
-\item{fnames}{A character vector of filenames (or fragments) to match against package entities}
+\item{fname}{A filename (or fragment) to match against package entities}
 }
 \value{
 A named list of dataframes, where each name corresponds to a matched filename

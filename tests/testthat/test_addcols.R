@@ -274,22 +274,19 @@ test_that("add_meta_col correctly joins metadata by date range", {
     `Ending Date`   = as.Date(c('2020-05-31', '2020-12-31')),
     Analyst = c('Alice', 'Bob')
   )
-  
+
+  local_mocked_bindings(read_meta_file = function(x) mock_meta, .env = asNamespace('pespr'))
+
   df <- tibble(Date = seq(as.Date('2020-01-15'), as.Date('2020-12-15'), by = 'month'))
-  
-  out <- add_meta_col(
-    df,
-    program = 'EMP',
-    col_name = Analyst,
-    read_func = function(x) mock_meta
-  )
-  
+
+  out <- add_meta_col(df, program = 'EMP', col_name = Analyst)
+
   # first half (Jan–May) should map to Alice
   expect_true(all(out$Analyst[1:5] == 'Alice'))
-  
+
   # second half (Jun–Dec) should map to Bob
   expect_true(all(out$Analyst[6:12] == 'Bob'))
-  
+
   # confirm no missing values
   expect_true(all(!is.na(out$Analyst)))
 })
@@ -300,13 +297,12 @@ test_that("add_meta_col stops if column missing in metadata", {
     `Starting Date` = Sys.Date(),
     `Ending Date` = Sys.Date()
   )
-  
+
+  local_mocked_bindings(read_meta_file = function(x) mock_meta, .env = asNamespace('pespr'))
+
   df <- tibble(Date = Sys.Date())
-  
-  expect_error(
-    add_meta_col(df, 'EMP', col_name = Analyst,
-                 read_func = function(x) mock_meta)
-  )
+
+  expect_error(add_meta_col(df, 'EMP', col_name = Analyst))
 })
 
 test_that("add_meta_col stops if match_cols missing", {
@@ -317,18 +313,12 @@ test_that("add_meta_col stops if match_cols missing", {
     Station = 'A',
     Analyst = 'Bob'
   )
-  
+
+  local_mocked_bindings(read_meta_file = function(x) mock_meta, .env = asNamespace('pespr'))
+
   df <- tibble(Date = Sys.Date())
-  
-  expect_error(
-    add_meta_col(
-      df,
-      'EMP',
-      col_name = Analyst,
-      match_cols = 'Station',
-      read_func = function(x) mock_meta
-    )
-  )
+
+  expect_error(add_meta_col(df, 'EMP', col_name = Analyst, match_cols = 'Station'))
 })
 
 test_that("add_meta_col respects match_cols filtering", {
@@ -339,19 +329,15 @@ test_that("add_meta_col respects match_cols filtering", {
     Station = c('A', 'B'),
     Analyst = c('Alice', 'Bob')
   )
-  
+
+  local_mocked_bindings(read_meta_file = function(x) mock_meta, .env = asNamespace('pespr'))
+
   df <- tibble(
     Date = rep(as.Date('2020-06-01'), 2),
     Station = c('A', 'B')
   )
-  
-  out <- add_meta_col(
-    df,
-    'EMP',
-    col_name = Analyst,
-    match_cols = 'Station',
-    read_func = function(x) mock_meta
-  )
-  
+
+  out <- add_meta_col(df, 'EMP', col_name = Analyst, match_cols = 'Station')
+
   expect_equal(out$Analyst, c('Alice', 'Bob'))
 })

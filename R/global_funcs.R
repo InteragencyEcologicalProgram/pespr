@@ -98,23 +98,22 @@ read_phyto_taxa <- function(){
   return(df)
 }
 
+get_phyto_typos <- function() phyto_typos
+
 #' @title Read-in metadata file for programs
 #' @description
-#' Reads in the PESP metadata Excel file and filters it to include only rows for the specified program.
+#' Filters the `survey_metadata` package data to rows for the specified program.
 #' Any missing `Ending Date` values are replaced with the current system date.
 #'
 #' @param program_name Name of the program to filter by
 #' @return
 #' A dataframe of filtered metadata with no missing ending dates
-#' @importFrom readxl read_xlsx
 read_meta_file <- function(program_name){
-  df <- read_xlsx(abs_pesp_path('Reference Documents/GroupMetadata.xlsx'), skip = 2)
-  
-  df <- df %>%
-    subset(Survey == program_name) 
-  
+  df <- survey_metadata %>%
+    subset(Survey == program_name)
+
   df$`Ending Date`[is.na(df$`Ending Date`)] <- Sys.Date()
-  
+
   return(df)
 }
 
@@ -124,7 +123,7 @@ read_meta_file <- function(program_name){
 #' and reads them into a named list of dataframes.
 #' 
 #' @param pkg_id The EDI package ID (e.g., "1017")
-#' @param fnames A character vector of filenames (or fragments) to match against package entities
+#' @param fname A filename (or fragment) to match against package entities
 #'
 #' @return
 #' A named list of dataframes, where each name corresponds to a matched filename
@@ -524,7 +523,7 @@ coalesce_cols <- function(df, combine_map = NULL) {
 #'
 #' @return A dataframe with zeros replaced by NA and rows removed where all specified
 #'   columns are NA.
-#' @importFrom dplyr mutate across if_all filter all_of
+#' @importFrom dplyr mutate across if_all if_any filter all_of everything
 #' @export
 remove_nodata <- function(df, 
                           density_cols = c('Cells_per_mL', 'Units_per_mL', 'Biovolume_per_mL')) {
@@ -616,7 +615,7 @@ remove_nodata <- function(df,
 #' Rows with multiple issues are flagged with all applicable labels separated by spaces.
 #' If no issues are found, `QualityCheck` is set to `"NoCode"`.
 #'
-#' @importFrom dplyr mutate case_when select
+#' @importFrom dplyr mutate case_when select starts_with
 #' @importFrom tidyr unite
 #' @importFrom rlang ensym !!
 #' @export
@@ -703,19 +702,21 @@ add_qc_col <- function(df, comment_col = 'Comments', key_cols = c('Date', 'Stati
 #'
 #' @param df input dataframe containing the specified measurement column and 
 #'   \code{QualityCheck}, \code{Notes}, \code{Date}, \code{Station}, and \code{Taxon} columns
-#' @param col unquoted column name of the measurement variable to evaluate 
-#'   (must be one of \code{Cells_per_mL}, \code{Units_per_mL}, or 
+#' @param col unquoted column name of the measurement variable to evaluate
+#'   (must be one of \code{Cells_per_mL}, \code{Units_per_mL}, or
 #'   \code{Biovolume_per_mL})
-#' @param cutoff numeric value for the absolute robust z-score threshold 
+#' @param station_col unquoted column name for the station grouping variable (default = \code{Station})
+#' @param cutoff numeric value for the absolute robust z-score threshold
 #'   used to identify outliers (default = 3)
-#' @param show_plot logical; if \code{TRUE}, prints a scatter plot with 
+#' @param add_flag logical; if \code{TRUE}, updates \code{QualityCheck} for flagged rows (default = TRUE)
+#' @param show_plot logical; if \code{TRUE}, prints a scatter plot with
 #'   flagged outliers in red (default = TRUE)
 #'   
 #' @return the input dataframe with updated \code{QualityCheck} values and 
 #' an updated \code{log} attribute containing a dataframe of flagged rows
 #'   
 #' @importFrom rlang enquo as_name
-#' @importFrom dplyr mutate filter pull select case_when
+#' @importFrom dplyr mutate filter pull select case_when na_if
 #' @importFrom ggplot2 ggplot aes geom_point scale_fill_manual scale_color_manual scale_y_log10 labs theme_minimal
 #' @importFrom scales alpha
 #' @importFrom stringr str_detect
@@ -843,7 +844,7 @@ flag_outliers <- function(df, col, station_col = Station, cutoff = 3, add_flag =
 #' the highest detected level (e.g., `"High"` takes precedence over `"Moderate"` or `"Low"`).
 #' Rows with no matching terms are labeled `"None"`.
 #' 
-#' @importFrom dplyr mutate case_when
+#' @importFrom dplyr mutate case_when starts_with
 #' @importFrom tidyr unite
 #' @importFrom rlang ensym !!
 #' @export
@@ -915,6 +916,7 @@ add_debris_col <- function(df, comment_col = 'Comments') {
 #'
 #' @importFrom dplyr mutate case_when filter distinct arrange select bind_cols
 #' @importFrom tidyr unite
+#' @importFrom dplyr mutate select starts_with
 #' @importFrom purrr imap_dfc
 #' @importFrom rlang ensym eval_tidy !!
 #' @importFrom stringr str_detect str_extract str_remove_all str_squish str_c regex
@@ -1044,7 +1046,7 @@ add_notes_col <- function(df, comment_col = 'Comments', taxa_col = 'Taxon') {
 #' @param df A dataframe to which the metadata column will be added
 #' @param program A character string specifying the program used to select the metadata file
 #' @param col_name A column name (unquoted) used to perform the join with the metadata sheet
-#' @param read_func Internal argument used for testing; defaults to `read_meta_file`
+#' @param match_cols Optional character vector of additional column names to join on beyond the date range
 #'
 #' @return
 #' A dataframe with the specified metadata column added
@@ -1052,9 +1054,9 @@ add_notes_col <- function(df, comment_col = 'Comments', taxa_col = 'Taxon') {
 #' @importFrom rlang enquo as_name
 #' @importFrom dplyr pull
 #' @export
-add_meta_col <- function(df, program, col_name, match_cols = NULL, read_func = read_meta_file){
+add_meta_col <- function(df, program, col_name, match_cols = NULL){
   # read in metadata
-  df_meta <- read_func(program)
+  df_meta <- read_meta_file(program)
   col_str <- as_name(enquo(col_name))
   
   # check if col_name exists in df_meta
@@ -1169,7 +1171,7 @@ add_meta_col <- function(df, program, col_name, match_cols = NULL, read_func = r
 #' @return
 #' Dataframe with a new `Event_ID` column added at the front
 #'
-#' @importFrom dplyr mutate group_by arrange dense_rank ungroup relocate select coalesce recode
+#' @importFrom dplyr mutate group_by arrange dense_rank ungroup relocate select coalesce recode everything
 #' @importFrom stringr str_replace str_trim
 #' @importFrom lubridate ymd
 #' @importFrom hms as_hms
@@ -1354,7 +1356,7 @@ clean_unknowns <- function(df, std_sp, std_suffix) {
 #' @export
 correct_taxon_typos <- function(df) {
   # load typo lookup table and create map
-  df_typos <- phyto_typos
+  df_typos <- get_phyto_typos()
   typo_map <- setNames(
     str_squish(stri_trans_general(df_typos$TaxonCorrected, 'Latin-ASCII')),
     str_squish(stri_trans_general(df_typos$Taxon, 'Latin-ASCII'))
@@ -1469,7 +1471,6 @@ correct_taxon_typos <- function(df) {
 #' - Uses memoization for speed.
 #'
 #' @param df Dataframe containing a `Taxon` column of names to standardize
-#' @param read_func Internal argument used for testing; defaults to `read_phyto_taxa`
 #'
 #' @return
 #' Dataframe with updated `Taxon` names, a new `OrigTaxon` column showing
@@ -1480,8 +1481,8 @@ correct_taxon_typos <- function(df) {
 #' @importFrom stringr str_detect str_match str_split str_trim str_replace_all
 #' @importFrom memoise memoise
 #' @export
-update_synonyms <- function(df, read_func = read_phyto_taxa) {
-  df_syn <- read_func() %>%
+update_synonyms <- function(df) {
+  df_syn <- read_phyto_taxa() %>%
     select(Taxon, CurrentTaxon) %>%
     rename(PureTaxon = Taxon)
   
@@ -1642,15 +1643,14 @@ update_synonyms <- function(df, read_func = read_phyto_taxa) {
 #' @param df A dataframe with a `Taxon` column to enrich with classification metadata.
 #' @param after_col Optional column name after which to insert the taxonomy fields (e.g., `"Taxon"`).
 #' @param std_type Character; either `"program"` (default) or `"pesp"`, controlling how `cf.` taxa are standardized.
-#' @param read_func Internal argument used for testing; defaults to `read_phyto_taxa`.
 #'
 #' @return
 #' A dataframe with additional taxa columns and a `log` attribute containing unmatched taxa
-#' 
+#'
 #' @details
-#' - Synonym resolution is **not** handled here - this function only appends classification fields.  
-#' - Matching is case-insensitive and diacritic-insensitive.  
-#' - If `after_col` is supplied, taxonomy columns are relocated immediately after it.  
+#' - Synonym resolution is **not** handled here - this function only appends classification fields.
+#' - Matching is case-insensitive and diacritic-insensitive.
+#' - If `after_col` is supplied, taxonomy columns are relocated immediately after it.
 #' - For `std_type = "pesp"`, `AlgalGroup` field is mapped to its singular form when replacing `"cf."` taxa.
 #'
 #' @importFrom dplyr mutate select left_join relocate any_of distinct filter
@@ -1658,7 +1658,7 @@ update_synonyms <- function(df, read_func = read_phyto_taxa) {
 #' @importFrom readr read_csv
 #' @importFrom stringi stri_trans_general stri_replace_all_regex stri_trim_both
 #' @export
-higher_lvl_taxa <- function(df, after_col = NULL, std_type, read_func = read_phyto_taxa) {
+higher_lvl_taxa <- function(df, after_col = NULL, std_type) {
   std_type <- tolower(std_type)
   
   df <- df %>%
@@ -1724,7 +1724,7 @@ higher_lvl_taxa <- function(df, after_col = NULL, std_type, read_func = read_phy
   df$PureTaxon <- str_replace_all(df$PureTaxon, 'spp\\.', 'sp.')
   
   # read in taxa sheet and add PureTaxon
-  df_taxa <- read_func()
+  df_taxa <- read_phyto_taxa()
   df_taxa <- df_taxa %>%
     mutate(
       PureTaxon = str_trim(Taxon),

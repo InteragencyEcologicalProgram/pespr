@@ -37,6 +37,7 @@
 #'
 #' @importFrom dplyr distinct across all_of count group_by summarise left_join mutate select rename bind_cols
 #' @importFrom tidyr pivot_wider
+#' @importFrom vegan vegdist
 #' @export
 create_mcom <- function(df, group_var, measure_var, taxa_var = 'Taxon',
                         factor_var = NULL, avg_var = NULL, compute_dist = FALSE, distance = NULL) {
@@ -152,6 +153,7 @@ create_mcom <- function(df, group_var, measure_var, taxa_var = 'Taxon',
 #'
 #' @importFrom dplyr distinct across all_of count group_by summarise left_join mutate select rename bind_cols
 #' @importFrom tidyr pivot_wider
+#' @importFrom vegan metaMDS scores
 #' @export
 calc_nmds <- function(df, group_var, measure_var, taxa_var = 'Taxon',
                       factor_var = NULL, avg_var = NULL,
@@ -318,7 +320,7 @@ plot_nmds <- function(df_nmds, meta_vars, fill_var, show_legend = TRUE, color_pa
 #'
 #' @return A `ggplot` object
 #'
-#' @importFrom dplyr filter arrange pull
+#' @importFrom dplyr filter arrange pull slice_head
 #' @importFrom ggplot2 ggplot aes geom_boxplot facet_wrap vars labs theme_minimal theme element_text
 #' @importFrom tibble rownames_to_column
 #' @export
@@ -370,8 +372,9 @@ plot_simper_bp <- function(df, sim, taxon_col = 'Taxon', x_axis = 'Year', y_axis
 #'
 #' @return A `ggplot` object
 #'
-#' @importFrom dplyr filter arrange pull group_by summarise
+#' @importFrom dplyr filter arrange pull group_by summarise slice_head
 #' @importFrom ggplot2 ggplot aes geom_line geom_point labs theme_minimal
+#' @importFrom rlang as_label
 #' @importFrom tibble rownames_to_column
 #' @importFrom stringr str_to_title
 #' @export
@@ -430,6 +433,7 @@ plot_simper_summary <- function(df, sim,
 #'   outside the Delta removed
 #'
 #' @importFrom sp CRS SpatialPointsDataFrame spTransform over
+#' @importFrom sf st_as_sf st_crs st_transform
 #' @importFrom dplyr filter
 #' @importFrom tibble as_tibble
 #' @export
@@ -495,7 +499,8 @@ convert_to_sf <- function(df, sf_delta = NULL) {
 #' @return An `openxlsx` workbook object. Use `openxlsx::saveWorkbook()` to
 #'   write it to disk.
 #'
-#' @importFrom dplyr mutate across
+#' @importFrom dplyr mutate across everything
+#' @importFrom openxlsx createWorkbook addWorksheet writeData mergeCells
 #' @importFrom tibble as_tibble rownames_to_column
 #' @export
 export_primer <- function(df_meta, df_com,

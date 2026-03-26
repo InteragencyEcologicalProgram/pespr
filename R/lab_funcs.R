@@ -97,7 +97,7 @@ rename_cols_bsa <- function(df){
 #' @return Dataframe with one or more new density columns added:
 #'   `Units_per_mL`, `Cells_per_mL`, `Biovolume_per_mL`
 #'
-#' @importFrom dplyr mutate across all_of select
+#' @importFrom dplyr mutate across all_of select matches
 #' @export
 calc_data_bsa <- function(df,
                           unit_col = 'Unit Abundance',
@@ -222,7 +222,7 @@ standardize_cols_bsa <- function(df, meta_df){
 #' @return Dataframe with one or more new density columns added:
 #'   `Units_per_mL`, `Cells_per_mL`, `Biovolume_per_mL`
 #'
-#' @importFrom dplyr mutate across any_of select
+#' @importFrom dplyr mutate across any_of select matches
 #' @export
 calc_data_ea <- function(df,
                          unit_col = 'Organisms per mL',
