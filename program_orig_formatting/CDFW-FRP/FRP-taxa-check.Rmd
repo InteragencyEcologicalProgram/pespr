@@ -1,0 +1,140 @@
+# Taxa Check
+Check how the taxa in FRP's current publication matches with PESP's (2024)
+
+Date: 05/01/2025
+
+```{r}
+library(tidyverse)
+source('admin/global_functions/global_funcs.R')
+source('admin/global_functions/check_funcs.R')
+```
+
+```{r}
+df_phyto <- get_edi_file('269','phyto')
+```
+
+## Check how EMP taxa match with current list
+```{r}
+# read in FRP data
+df_phyto <- df_phyto %>%
+  separate(
+    col = Taxonomy_EMP,
+    into = c('Kingdom', 'Phylum', 'Class', 'Genus', 'Species'),
+    sep = '/',
+    remove = FALSE,
+    fill = 'right'
+  ) %>%
+  mutate(Taxon = paste(Genus, Species))
+
+df_phyto <- df_phyto %>%
+  mutate(OriginalTaxon = str_replace_all(OriginalTaxon, 'ë', 'e'))
+
+# read in PESP taxonomy
+df_taxa <- read_phyto_taxa()
+```
+
+```{r}
+# determine which genus-species are in PESP, but higher level taxa differ
+species_matches <- df_phyto %>%
+  select(Kingdom, Phylum, Class, Genus, Species) %>%
+  distinct() %>%
+  mutate(Species =
+           case_when(Species == 'spp.' ~ 'sp.',
+                     TRUE ~ Species)
+  ) %>%
+  inner_join(df_taxa, by = c('Genus', 'Species'), suffix = c('_phyto', '_taxa')) %>%
+  filter(
+    Kingdom_phyto != Kingdom_taxa |
+    Phylum_phyto  != Phylum_taxa  |
+    Class_phyto   != Class_taxa
+  )
+
+write_csv(species_matches, abs_pesp_path('Groups/CDFW-FRP/02 Processed Data/2024 Publication Review/FRP_taxon_differences.csv'))
+```
+
+```{r}
+# determine which taxonomy aren't in PESP at all (but should be)
+taxa_mismatch <- df_phyto %>%
+  mutate(Species =
+           case_when(Species == 'spp.' ~ 'sp.',
+                     TRUE ~ Species)
+  ) %>%
+  anti_join(df_taxa, by = c('Kingdom', 'Phylum', 'Class', 'Genus', 'Species')) %>%
+  select(Kingdom, Phylum, Class, Genus, Species) %>%
+  distinct()
+
+taxa_mismatch <- taxa_mismatch %>%
+  anti_join(
+    species_matches %>%
+      select(
+        Kingdom = Kingdom_phyto,
+        Phylum  = Phylum_phyto,
+        Class   = Class_phyto,
+        Genus,
+        Species
+      ) %>%
+      distinct(),
+    by = c('Kingdom', 'Phylum', 'Class', 'Genus', 'Species')
+  ) %>%
+  filter(!(is.na(Kingdom) & is.na(Phylum) & is.na(Class) & is.na(Genus) & is.na(Species)))
+
+write_csv(taxa_mismatch, abs_pesp_path('Groups/CDFW-FRP/02 Processed Data/2024 Publication Review/FRP_taxon_mismatch.csv'))
+```
+
+```{r}
+# determine which taxa exist in PESP but the taxa names should be updated
+need_syn <- df_taxa %>%
+  semi_join(df_phyto, by = c('Kingdom', 'Phylum', 'Class', 'Genus', 'Species')) %>%
+  filter(CurrentTaxon != 'None')
+
+write_csv(need_syn, abs_pesp_path('Groups/CDFW-FRP/02 Processed Data/2024 Publication Review/FRP_update_synonym.csv'))
+```
+
+```{r}
+# determine which are missing from PESP altogether
+missing_pesp <- df_phyto %>%
+  filter(
+    is.na(Kingdom) &
+    is.na(Phylum) &
+    is.na(Class) &
+    is.na(Genus) &
+    is.na(Species)
+  ) %>%
+  distinct(Taxonomy_FRP) %>%
+    separate(
+    col = Taxonomy_FRP,
+    into = c('Kingdom', 'Phylum', 'Class', 'Genus', 'Species'),
+    sep = '/',
+    remove = FALSE,
+    fill = 'right'
+  ) %>%
+  mutate(Taxon = paste(Genus, Species)) %>%
+  filter(!(is.na(Kingdom) & is.na(Phylum) & is.na(Class) & is.na(Genus) & is.na(Species)))
+
+write_csv(missing_pesp, abs_pesp_path('Groups/CDFW-FRP/02 Processed Data/2024 Publication Review/FRP_missing_pesp.csv'))
+```
+
+```{r}
+# taxon that have info for original taxon but not taxonomy FRP or PESP
+no_info <- df_phyto %>%
+  filter(is.na(df_phyto$Taxonomy_FRP)) %>%
+  select(OriginalTaxon) %>%
+  distinct()
+
+write_csv(no_info, abs_pesp_path('Groups/CDFW-FRP/02 Processed Data/2024 Publication Review/FRP_missing_info.csv'))
+```
+
+# Check QC Codes
+```{r}
+subcomments <- unique(df_phyto$QualityCheck) %>%
+  map(~ str_split(.x, '\\.\\s+')[[1]]) %>%  
+  unlist() %>%
+  str_trim() %>%
+  str_remove('\\.$') %>%
+  unique() %>%
+  data.frame() %>%
+  setNames('Comments') %>%
+  filter(!is.na(Comments))
+
+write_csv(subcomments, abs_pesp_path('Groups/CDFW-FRP/02 Processed Data/2024 Publication Review/FRP_unique_comments.csv'))
+```

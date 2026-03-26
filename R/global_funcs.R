@@ -89,14 +89,12 @@ abs_pesp_path <- function(fp_rel = NULL) {
 #' @return
 #' A dataframe of filtered metadata
 #'
-#' @importFrom readr read_csv
 #' @importFrom dplyr select
 #' @export
 read_phyto_taxa <- function(){
-  df <-
-    read_quiet_csv(abs_pesp_path('Reference Documents/PhytoTaxonomy.csv')) %>%
+  df <- phyto_taxonomy %>%
     select(Kingdom,Phylum,Class,AlgalGroup,Genus,Species,Taxon,CurrentTaxon)
-  
+
   return(df)
 }
 
@@ -342,7 +340,7 @@ convert_to_pst <- function(df, orig_tz = 'PDT/PST') {
     filter(!time_missing) %>%
     mutate(Date_orig = Date, Time_orig = Time_chr) %>%
     filter(Time_orig != Time_new | Date != Date_new) %>%
-    dplyr::select(Date = Date_orig) %>%
+    select(Date = Date_orig) %>%
     distinct()
   
   # update and clean
@@ -1344,7 +1342,6 @@ clean_unknowns <- function(df, std_sp, std_suffix) {
 #' - Reattaches `cf.` qualifiers to corrected names
 #'
 #' @param df Dataframe containing a `Taxon` column to correct
-#' @param read_func Internal argument used for testing; defaults to `read_quiet_csv`
 #'
 #' @return
 #' Dataframe with corrected `Taxon` values and a `log` attribute containing
@@ -1355,9 +1352,9 @@ clean_unknowns <- function(df, std_sp, std_suffix) {
 #' @importFrom stringr str_split str_replace_all str_trim str_squish
 #' @importFrom stringi stri_trans_general
 #' @export
-correct_taxon_typos <- function(df, read_func = read_quiet_csv) {
-  # read in typo lookup table and create map
-  df_typos <- read_func(abs_pesp_path('Reference Documents/TaxaTypos.csv'))
+correct_taxon_typos <- function(df) {
+  # load typo lookup table and create map
+  df_typos <- phyto_typos
   typo_map <- setNames(
     str_squish(stri_trans_general(df_typos$TaxonCorrected, 'Latin-ASCII')),
     str_squish(stri_trans_general(df_typos$Taxon, 'Latin-ASCII'))

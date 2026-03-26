@@ -218,12 +218,12 @@ extract_unstandardized_comments <- function(df, comment_col, delimiter = ' ') {
   # compile regex pattern
   known_pattern <- paste0(
     '(', 
-    paste0(stringr::str_replace_all(known_phrases, '(\\W)', '\\\\\\1'), collapse = '|'), 
+    paste0(str_replace_all(known_phrases, '(\\W)', '\\\\\\1'), collapse = '|'), 
     ')'
   )
   
   raw_comments <- df %>%
-    dplyr::pull(!!comment_col) %>%
+    pull(!!comment_col) %>%
     unique() %>%
     discard(is.na)
   
@@ -232,20 +232,20 @@ extract_unstandardized_comments <- function(df, comment_col, delimiter = ' ') {
   # isolate unmatched fragments
   if (!is.null(delimiter) && delimiter != '') {
     unmatched <- cleaned_comments %>%
-      map(~ stringr::str_split(.x, delimiter)[[1]]) %>%
+      map(~ str_split(.x, delimiter)[[1]]) %>%
       unlist() %>%
-      stringr::str_trim() %>%
-      stringr::str_remove('\\.$') %>%
-      stringr::str_remove('\\;$') %>%
+      str_trim() %>%
+      str_remove('\\.$') %>%
+      str_remove('\\;$') %>%
       discard(~ .x == '' || is.na(.x))
   } else {
     unmatched <- cleaned_comments %>%
-      stringr::str_trim() %>%
+      str_trim() %>%
       discard(~ .x == '' || is.na(.x))
   }
   
   unmatched_df <- unique(unmatched) %>%
-    tibble::tibble(Unmatched = .)
+    tibble(Unmatched = .)
   
   if (nrow(unmatched_df) > 0) {
     message('Unique unstandardized comments: ', nrow(unmatched_df))
@@ -394,7 +394,21 @@ check_nodata <- function(df) {
   }
 }
 
-# Check cells >= units 
+#' @title Check that Cells_per_mL >= Units_per_mL
+#'
+#' @description
+#' Verifies that `Cells_per_mL` is greater than or equal to `Units_per_mL` for
+#' every row. Rows where cells are less than units are flagged and attached to
+#' the dataframe's `log` attribute under `cell_calc_issue`. If either column is
+#' absent, a message is printed and the dataframe is returned unchanged.
+#'
+#' @param df A dataframe containing `Units_per_mL` and `Cells_per_mL` columns
+#'
+#' @return The input dataframe, with a `log` attribute entry `cell_calc_issue`
+#'   added if any rows fail the check
+#'
+#' @importFrom dplyr filter
+#' @export
 check_units_cells <- function(df) {
   if ('Units_per_mL' %in% colnames(df) && 'Cells_per_mL' %in% colnames(df)) {
     
@@ -425,7 +439,24 @@ check_units_cells <- function(df) {
   return(df)
 }
 
-# check for NAs
+#' @title Check for missing values across columns
+#'
+#' @description
+#' Scans a dataframe for columns containing any `NA` values (partial NAs) and
+#' columns where all values are `NA` (fully missing). Specified columns can be
+#' excluded from the partial NA check. Results are printed as messages and
+#' attached to the dataframe's `log` attribute under `na_check`.
+#'
+#' @param df A dataframe to check for missing values
+#' @param exclude_cols Character vector of column names to exclude from the
+#'   partial NA check (default: `'OrigTaxon'`)
+#'
+#' @return The input dataframe with a `log` attribute entry `na_check`
+#'   containing a tibble of column names with partial NAs
+#'
+#' @importFrom tibble tibble
+#' @importFrom dplyr distinct
+#' @export
 check_nas <- function(df, exclude_cols = 'OrigTaxon') {
   # Identify columns to check for partial NAs
   cols_to_check_partial <- if (!is.null(exclude_cols)) {
@@ -442,7 +473,7 @@ check_nas <- function(df, exclude_cols = 'OrigTaxon') {
   na_cols_full <- names(which(colSums(is.na(df)) == nrow(df)))
   
   # Create log as a tibble
-  log_df <- tibble::tibble(MissingInColumn = na_cols_partial) %>% distinct()
+  log_df <- tibble(MissingInColumn = na_cols_partial) %>% distinct()
   
   # Print messages
   if (length(na_cols_partial) > 0) {
@@ -463,14 +494,41 @@ check_nas <- function(df, exclude_cols = 'OrigTaxon') {
   return(df)
 }
 
-# check for unique values
+#' @title Print unique values in a column
+#'
+#' @description
+#' Prints a message listing all unique values found in the specified column.
+#'
+#' @param df A dataframe
+#' @param col Unquoted column name to inspect
+#'
+#' @return Called for its side effect (message); returns `NULL` invisibly
+#'
+#' @importFrom rlang ensym as_string
+#' @importFrom dplyr pull
+#' @export
 unique_check <- function(df, col) {
-  col_sym <- rlang::ensym(col)
-  unique_vals <- unique(df %>% dplyr::pull(!!col_sym))
-  message('Unique ', rlang::as_string(col_sym), 's: ', paste(unique_vals, collapse = ', '))
+  col_sym <- ensym(col)
+  unique_vals <- unique(df %>% pull(!!col_sym))
+  message('Unique ', as_string(col_sym), 's: ', paste(unique_vals, collapse = ', '))
 }
 
-# Check Station Count -----------------------------------------------------
+#' @title Plot number of stations sampled per month
+#'
+#' @description
+#' Summarizes the number of distinct stations sampled in each month and year,
+#' then displays the result as a heatmap tile plot. Months with no sampling
+#' are shown as white tiles.
+#'
+#' @param df A dataframe containing `Date` and `Station` columns
+#'
+#' @return A `ggplot` object
+#'
+#' @importFrom dplyr mutate distinct count left_join
+#' @importFrom lubridate floor_date year month
+#' @importFrom tidyr expand_grid
+#' @importFrom ggplot2 ggplot aes geom_tile scale_fill_distiller scale_y_continuous theme_minimal labs theme element_text
+#' @export
 check_station_count <- function(df) {
   df <- df %>%
     mutate(
@@ -509,7 +567,22 @@ check_station_count <- function(df) {
     )
 }
 
-# Check Sampling Frequency ------------------------------------------------
+#' @title Plot station sampling frequency per year
+#'
+#' @description
+#' Summarizes how many times each station was sampled per year, then displays
+#' the result as a heatmap tile plot. Station-year combinations with no
+#' sampling are shown as white tiles.
+#'
+#' @param df A dataframe containing `Date` and `Station` columns
+#'
+#' @return A `ggplot` object
+#'
+#' @importFrom dplyr mutate distinct count left_join
+#' @importFrom lubridate floor_date year
+#' @importFrom tidyr expand_grid
+#' @importFrom ggplot2 ggplot aes geom_tile scale_fill_distiller scale_x_continuous theme_minimal labs theme element_text
+#' @export
 check_sampling_freq <- function(df) {
   df <- df %>%
     mutate(
@@ -548,6 +621,20 @@ check_sampling_freq <- function(df) {
 
 # Check Introduced NAs ----------------------------------------------------
 
+#' @title Identify values that become NA when coerced to numeric
+#'
+#' @description
+#' Attempts to coerce the specified column to numeric and reports any values
+#' that become `NA` as a result (i.e. non-numeric strings that would be silently
+#' lost in a conversion). Prints the problematic values and the row indices
+#' where they occur (up to 10).
+#'
+#' @param df A dataframe containing the column to inspect
+#' @param col_name Name of the column to check (as a character string)
+#'
+#' @return Called for its side effect (printed output); returns `NULL` invisibly
+#'
+#' @export
 check_non_numeric <- function(df, col_name) {
   if (col_name %in% names(df)) {
     original <- df[[col_name]]
