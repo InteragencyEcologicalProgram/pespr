@@ -1684,6 +1684,12 @@ higher_lvl_taxa <- function(df, after_col = NULL, std_type) {
   df <- df %>%
     mutate(Taxon = Taxon)
   
+  # save OrigTaxon if not already present
+  if (!'OrigTaxon' %in% names(df)) {
+    df <- df %>%
+      mutate(OrigTaxon = Taxon)
+  }
+  
   # PESP standardization (if applicable) of Species cf.
   if (std_type == 'pesp') {
     df <- df %>%
@@ -1699,12 +1705,6 @@ higher_lvl_taxa <- function(df, after_col = NULL, std_type) {
           TRUE ~ OrigTaxon
         )
       )
-  }
-  
-  # save OrigTaxon if not already present
-  if (!'OrigTaxon' %in% names(df)) {
-    df <- df %>%
-      mutate(OrigTaxon = Taxon)
   }
   
   # create PureTaxon by removing 'cf.', standardizing 'sp.', and normalizing
