@@ -1661,7 +1661,7 @@ update_synonyms <- function(df) {
 higher_lvl_taxa <- function(df, after_col = NULL, std_type) {
   std_type <- tolower(std_type)
   
-  df <- df %>%
+  df <- df %>% 
     mutate(
       Taxon = str_trim(Taxon),
       Taxon = str_squish(Taxon)
