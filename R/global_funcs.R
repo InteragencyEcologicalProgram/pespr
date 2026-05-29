@@ -850,37 +850,28 @@ flag_outliers <- function(df, col, station_col = Station, cutoff = 3, add_flag =
 #' @export
 add_debris_col <- function(df, comment_col = 'Comments') {
   if (is.null(comment_col)) {
-    df <- df %>% mutate(Debris = 'Unknown')
+    df <- df %>%
+      mutate(Debris = 'Unknown')
   } else {
     comment_col <- ensym(comment_col)
     
-    high_anchors <- c('high detritus', 'high sediment', 'heavy detritus',
-                      'heavy sediment', 'high amount of debris',
-                      'high amounts of debris', 'lots of debris', 'heavy debris')
-    mod_anchors <- c('moderate detritus', 'moderate sediment',
-                      'medium detritus', 'medium sediment')
-    low_anchors <- c('low detritus', 'low sediment', 'light detritus',
-                      'light sediment')
-    
-    fuzzy_match_vec <- function(anchors, x, max_dist = 3) {
-      match_matrix <- sapply(anchors, \(a) {
-        idx <- agrep(a, x, max.distance = max_dist, ignore.case = TRUE)
-        seq_along(x) %in% idx
-      })
-      rowSums(match_matrix) > 0
-    }
-    
     df <- df %>%
       mutate(
+        Db_1 = case_when(
+          grepl('high detritus|high detriuts|high sediment|heavy detritus|heavy sediment|high amount of debris|high amounts of debris|lots of debris|High sedimnet|High sedimen', !!comment_col, ignore.case = TRUE) ~ 'High',
+          grepl('moderate detritus|moderate detriuts|moderate sediment|moderat sediment|medium detritus|medium sediment', !!comment_col, ignore.case = TRUE) ~ 'Moderate',
+          grepl('low detritus|low detriuts|low sediment|light detritus|light sediment', !!comment_col, ignore.case = TRUE) ~ 'Low',
+          TRUE ~ NA_character_
+        )
+      ) %>%
+      unite(Debris, starts_with('Db'), remove = TRUE, na.rm = TRUE, sep = ' ') %>%
+      mutate(
         Debris = case_when(
-          fuzzy_match_vec(high_anchors, !!comment_col) ~ 'High',
-          fuzzy_match_vec(mod_anchors, !!comment_col) ~ 'Moderate',
-          fuzzy_match_vec(low_anchors, !!comment_col) ~ 'Low',
-          TRUE ~ 'None'
+          Debris == '' ~ 'None',
+          TRUE ~ Debris
         )
       )
   }
-  df
 }
 
 #' @title Extract and Standardize Taxonomic Notes
