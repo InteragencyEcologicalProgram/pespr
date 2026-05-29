@@ -854,33 +854,30 @@ add_debris_col <- function(df, comment_col = 'Comments') {
   } else {
     comment_col <- ensym(comment_col)
     
-    classify_debris <- function(text) {
-      if (is.na(text) || is.null(text) || length(text) == 0) return(NA_character_)
-      
-      high_anchors <- c('high detritus', 'high sediment', 'heavy detritus',
-                        'heavy sediment', 'high amount of debris', 
-                        'high amounts of debris', 'lots of debris', 'heavy debris')
-      mod_anchors   <- c('moderate detritus', 'moderate sediment', 
-                         'medium detritus', 'medium sediment')
-      low_anchors   <- c('low detritus', 'low sediment', 'light detritus', 
-                         'light sediment')
-      
-      text_l <- tolower(text)
-      
-      fuzzy_match <- function(anchors, x, max_dist = 3) {
-        any(sapply(anchors, \(a) agrep(a, x, max.distance = max_dist, ignore.case = TRUE)))
-      }
-      
-      if (fuzzy_match(high_anchors, text_l))  return('High')
-      if (fuzzy_match(mod_anchors,  text_l))  return('Moderate')
-      if (fuzzy_match(low_anchors,  text_l))  return('Low')
-      return(NA_character_)
+    high_anchors <- c('high detritus', 'high sediment', 'heavy detritus',
+                      'heavy sediment', 'high amount of debris',
+                      'high amounts of debris', 'lots of debris', 'heavy debris')
+    mod_anchors <- c('moderate detritus', 'moderate sediment',
+                      'medium detritus', 'medium sediment')
+    low_anchors <- c('low detritus', 'low sediment', 'light detritus',
+                      'light sediment')
+    
+    fuzzy_match_vec <- function(anchors, x, max_dist = 3) {
+      match_matrix <- sapply(anchors, \(a) {
+        idx <- agrep(a, x, max.distance = max_dist, ignore.case = TRUE)
+        seq_along(x) %in% idx
+      })
+      rowSums(match_matrix) > 0
     }
     
     df <- df %>%
       mutate(
-        Debris = map_chr(!!comment_col, classify_debris),
-        Debris = if_else(is.na(Debris), 'None', Debris)
+        Debris = case_when(
+          fuzzy_match_vec(high_anchors, !!comment_col) ~ 'High',
+          fuzzy_match_vec(mod_anchors, !!comment_col) ~ 'Moderate',
+          fuzzy_match_vec(low_anchors, !!comment_col) ~ 'Low',
+          TRUE ~ 'None'
+        )
       )
   }
   df
