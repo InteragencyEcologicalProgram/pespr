@@ -855,7 +855,7 @@ add_debris_col <- function(df, comment_col = 'Comments') {
     comment_col <- ensym(comment_col)
     
     classify_debris <- function(text) {
-      if (is.na(text)) return(NA_character_)
+      if (is.na(text) || is.null(text) || length(text) == 0) return(NA_character_)
       
       high_anchors <- c('high detritus', 'high sediment', 'heavy detritus',
                         'heavy sediment', 'high amount of debris', 
