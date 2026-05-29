@@ -850,30 +850,40 @@ flag_outliers <- function(df, col, station_col = Station, cutoff = 3, add_flag =
 #' @export
 add_debris_col <- function(df, comment_col = 'Comments') {
   if (is.null(comment_col)) {
-    df <- df %>%
-      mutate(Debris = 'Unknown')
+    df <- df %>% mutate(Debris = 'Unknown')
   } else {
     comment_col <- ensym(comment_col)
     
+    classify_debris <- function(text) {
+      if (is.na(text)) return(NA_character_)
+      
+      high_anchors <- c('high detritus', 'high sediment', 'heavy detritus',
+                        'heavy sediment', 'high amount of debris', 
+                        'high amounts of debris', 'lots of debris', 'heavy debris')
+      mod_anchors   <- c('moderate detritus', 'moderate sediment', 
+                         'medium detritus', 'medium sediment')
+      low_anchors   <- c('low detritus', 'low sediment', 'light detritus', 
+                         'light sediment')
+      
+      text_l <- tolower(text)
+      
+      fuzzy_match <- function(anchors, x, max_dist = 3) {
+        any(sapply(anchors, \(a) agrep(a, x, max.distance = max_dist, ignore.case = TRUE)))
+      }
+      
+      if (fuzzy_match(high_anchors, text_l))  return('High')
+      if (fuzzy_match(mod_anchors,  text_l))  return('Moderate')
+      if (fuzzy_match(low_anchors,  text_l))  return('Low')
+      return(NA_character_)
+    }
+    
     df <- df %>%
       mutate(
-        Db_1 = case_when(
-          grepl('high detritus|high sediment|heavy detritus|heavy sediment|high amount of debris|high amounts of debris|lots of debris|High sedimnet|High sedimen', !!comment_col, ignore.case = TRUE) ~ 'High',
-          grepl('moderate detritus|moderate sediment|moderat sediment|medium detritus|medium sediment', !!comment_col, ignore.case = TRUE) ~ 'Moderate',
-          grepl('low detritus|low sediment|light detritus|light sediment', !!comment_col, ignore.case = TRUE) ~ 'Low',
-          TRUE ~ NA_character_
-        )
-      ) %>%
-      unite(Debris, starts_with('Db'), remove = TRUE, na.rm = TRUE, sep = ' ') %>%
-      mutate(
-        Debris = case_when(
-          Debris == '' ~ 'None',
-          TRUE ~ Debris
-        )
+        Debris = map_chr(!!comment_col, classify_debris),
+        Debris = if_else(is.na(Debris), 'None', Debris)
       )
   }
-  
-  return(df)
+  df
 }
 
 #' @title Extract and Standardize Taxonomic Notes
