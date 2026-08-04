@@ -1314,8 +1314,8 @@ clean_unknowns <- function(df, std_sp, std_suffix) {
   
   # create log
   df_log <- tibble(
-    OrigTaxon = original_taxon[original_taxon != df$Taxon],
-    UpdatedTaxon = df$Taxon[original_taxon != df$Taxon]
+    `Original Taxon` = original_taxon[original_taxon != df$Taxon],
+    `Updated Taxon` = df$Taxon[original_taxon != df$Taxon]
   ) %>%
     distinct()
   
@@ -1438,8 +1438,8 @@ correct_taxon_typos <- function(df) {
   # log corrections
   typo_log <- df %>%
     filter(str_squish(.orig_taxon) != str_squish(Taxon)) %>%
-    distinct(OrigTaxon = .orig_taxon, UpdatedTaxon = Taxon) %>%
-    arrange(OrigTaxon)
+    distinct(`Original Taxon` = .orig_taxon, `Updated Taxon` = Taxon) %>%
+    arrange(`Original Taxon`)
   
   if (nrow(typo_log) > 0) {
     message('Total taxon typos corrected: ', nrow(typo_log))
@@ -1603,7 +1603,7 @@ update_synonyms <- function(df) {
   
   update_log <- df %>%
     filter(!is.na(OrigTaxon)) %>%
-    distinct(OrigTaxon, UpdatedTaxon = Taxon)
+    distinct(`Original Taxon` = OrigTaxon, `Updated Taxon` = Taxon)
   
   message('Unique synonym updates applied: ', nrow(update_log))
   attr(df, 'log') <- list(synonym_updates = update_log)
