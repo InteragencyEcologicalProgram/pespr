@@ -8,7 +8,7 @@ csv_path <- abs_pesp_path('Reference Documents/PhytoTaxonomy.csv')
 
 phyto_taxonomy <- read_quiet_csv(csv_path)
 
-usethis::use_data(phyto_taxonomy, overwrite = TRUE)
+attr(phyto_taxonomy, 'version') <- '2026.1.1'
+attr(phyto_taxonomy, 'updated') <- as.character(Sys.Date())
 
-attr(phyto_taxonomy, 'version')     <- '2026.1.1'
-attr(phyto_taxonomy, 'updated')     <- as.character(Sys.Date())
+usethis::use_data(phyto_taxonomy, overwrite = TRUE)
