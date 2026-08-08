@@ -17,25 +17,19 @@ Config/testthat/edition: 3
 Imports: 
     data.table,
     dplyr,
-    EDIutils,
-    ggplot2,
     glue,
     hms,
+    httr2,
     janitor,
     lubridate,
     memoise,
-    openxlsx,
     purrr,
     readr,
     readxl,
     rlang,
-    scales,
-    sf,
-    sp,
     stats,
     stringi,
     stringr,
     tibble,
-    tidyr,
-    vegan
+    tidyr
 Config/roxygen2/version: 8.0.0

@@ -117,52 +117,82 @@ read_meta_file <- function(program_name){
   return(df)
 }
 
-#' @title Download and read specific files from an EDI data package
-#' @description
-#' Downloads specified files by name from the latest revision of an EDI data package,
-#' and reads them into a named list of dataframes.
-#' 
-#' @param pkg_id The EDI package ID (e.g., "1017")
-#' @param fname A filename (or fragment) to match against package entities
+#' Fetch a URL from the EDI PASTA API
 #'
-#' @return
-#' A named list of dataframes, where each name corresponds to a matched filename
-#' 
-#' @importFrom glue glue
-#' @importFrom stringr str_detect str_c
-#' @importFrom purrr map_chr map slowly rate_delay keep
+#' @param url Full request URL.
+#' @param key_name Name of the environment variable holding the EDI API key.
+#'
+#' @return An httr2 response object.
+#'
+#' @importFrom httr2 request req_url_query req_perform
+#' @noRd
+edi_get <- function(url, key_name = 'EDI_API_KEY') {
+  req_perform(req_url_query(request(url), key = Sys.getenv(key_name)))
+}
+
+
+#' @title Download and read a specific file from an EDI data package
+#' @description
+#' Downloads a file by name from the latest revision of an EDI data package
+#' and reads it into a dataframe.
+#'
+#' @param pkg_id The EDI package ID (e.g., "1017").
+#' @param fname A filename (or fragment) to match against package entities.
+#' @param scope EDI scope; defaults to "edi".
+#' @param match_type Whether `fname` is matched exactly or as a regex.
+#' @param col_types Optional column specification passed to [readr::read_csv()].
+#' @param key_name Name of the environment variable holding the EDI API key.
+#' @param pause Seconds to wait between entity-name lookups.
+#'
+#' @return A dataframe.
+#'
+#' @importFrom httr2 resp_body_string resp_body_raw
 #' @importFrom readr read_csv
-#' @importFrom EDIutils list_data_entities read_data_entity_name list_data_package_revisions
 #' @export
-get_edi_file <- function(pkg_id, fname) {
-  # get latest revision
-  revisions <- list_data_package_revisions(scope = 'edi', identifier = pkg_id)
-  latest_revision <- max(as.numeric(revisions))
-  package_id_str <- glue('edi.{pkg_id}.{latest_revision}')
+get_edi_file <- function(pkg_id, fname, scope = 'edi',
+                         match_type = c('exact', 'regex'),
+                         col_types = NULL, key_name = 'EDI_API_KEY',
+                         pause = 0.3) {
+  match_type <- match.arg(match_type)
+  base <- 'https://pasta.lternet.edu/package'
   
-  # get entity IDs
-  entities <- list_data_entities(packageId = package_id_str)
+  revisions <- resp_body_string(
+    edi_get(sprintf('%s/eml/%s/%s', base, scope, pkg_id), key_name)
+  )
+  latest_revision <- max(as.numeric(strsplit(trimws(revisions), '\n')[[1]]))
   
-  # slow wrapper (avoid rate limit)
-  slow_read <- slowly(read_data_entity_name, rate_delay(pause = 1))
+  entities <- resp_body_string(
+    edi_get(sprintf('%s/data/eml/%s/%s/%s', base, scope, pkg_id, latest_revision), key_name)
+  )
+  entities <- strsplit(trimws(entities), '\n')[[1]]
   
-  # find the matching entity
-  matched <- keep(entities, function(entity_id) {
-    entity_name <- slow_read(packageId = package_id_str, entityId = entity_id)
-    print(entity_name)
-    identical(entity_name, fname)
-  })
-  
-  if (length(matched) == 0) {
-    stop(glue("File '{fname}' not found in package edi.{pkg_id}.{latest_revision}"))
+  get_name <- function(entity_id) {
+    Sys.sleep(pause)   # be nice to the server
+    trimws(resp_body_string(
+      edi_get(sprintf('%s/name/eml/%s/%s/%s/%s',
+                      base, scope, pkg_id, latest_revision, entity_id), key_name)
+    ))
   }
   
-  # construct download URL and read csv
-  entity_id <- matched[[1]]
-  file_url <- glue('https://pasta.lternet.edu/package/data/eml/edi/{pkg_id}/{latest_revision}/{entity_id}')
-  df <- read_csv(file_url, guess_max = 1000000, show_col_types = FALSE)
+  is_match <- function(name) {
+    if (match_type == 'regex') grepl(fname, name) else identical(name, fname)
+  }
   
-  return(df)
+  entity_id <- NULL
+  for (e in entities) {
+    if (is_match(get_name(e))) { entity_id <- e; break }
+  }
+  
+  if (is.null(entity_id)) {
+    stop(sprintf("No entity matching '%s' (%s) in %s.%s.%s",
+                 fname, match_type, scope, pkg_id, latest_revision))
+  }
+  
+  raw <- resp_body_raw(
+    edi_get(sprintf('%s/data/eml/%s/%s/%s/%s',
+                    base, scope, pkg_id, latest_revision, entity_id), key_name)
+  )
+  read_csv(raw, show_col_types = FALSE, col_types = col_types)
 }
 
 # Modify Dataframe --------------------------------------------------------
@@ -691,132 +721,6 @@ add_qc_col <- function(df, comment_col = 'Comments', key_cols = c('Date', 'Stati
   
   return(df)
 }
-
-#' @title Flag statistical outliers in a measurement column
-#'
-#' @description
-#' Identifies outliers in log-transformed measurement data using robust z-scores 
-#' (median and MAD), flags them in the \code{QualityCheck} column, and optionally 
-#' generates a scatter plot showing flagged points. The function also appends a 
-#' dataframe of flagged rows to the \code{log} attribute.
-#'
-#' @param df input dataframe containing the specified measurement column and 
-#'   \code{QualityCheck}, \code{Notes}, \code{Date}, \code{Station}, and \code{Taxon} columns
-#' @param col unquoted column name of the measurement variable to evaluate
-#'   (must be one of \code{Cells_per_mL}, \code{Units_per_mL}, or
-#'   \code{Biovolume_per_mL})
-#' @param station_col unquoted column name for the station grouping variable (default = \code{Station})
-#' @param cutoff numeric value for the absolute robust z-score threshold
-#'   used to identify outliers (default = 3)
-#' @param add_flag logical; if \code{TRUE}, updates \code{QualityCheck} for flagged rows (default = TRUE)
-#' @param show_plot logical; if \code{TRUE}, prints a scatter plot with
-#'   flagged outliers in red (default = TRUE)
-#'   
-#' @return the input dataframe with updated \code{QualityCheck} values and 
-#' an updated \code{log} attribute containing a dataframe of flagged rows
-#'   
-#' @importFrom rlang enquo as_name
-#' @importFrom dplyr mutate filter pull select case_when na_if
-#' @importFrom ggplot2 ggplot aes geom_point scale_fill_manual scale_color_manual scale_y_log10 labs theme_minimal
-#' @importFrom scales alpha
-#' @importFrom stringr str_detect
-#' @importFrom stats median mad
-#' @importFrom lubridate year
-#' @export
-flag_outliers <- function(df, col, station_col = Station, cutoff = 3, add_flag = TRUE, show_plot = TRUE) {
-  col <- enquo(col)
-  col_name <- as_name(col)
-  station <- enquo(station_col)
-  station_name <- as_name(station)
-  
-  # determine code label based on column name (case-insensitive, flexible)
-  switch_label <- case_when(
-    str_detect(tolower(col_name), 'cells') ~ 'Cells',
-    str_detect(tolower(col_name), 'units') ~ 'Units',
-    str_detect(tolower(col_name), 'biovol') ~ 'Biovol',
-    TRUE ~ NA_character_
-  )
-  if (is.na(switch_label)) {
-    stop('colname must contain one of: "cells", "units", or "biovolume"')
-  }
-  
-  # compute robust z-scores (upper outliers only)
-  df_flagged <- df %>%
-    mutate(
-      log_val = if_else(!!col > 0, log10(!!col), NA_real_),
-      z_robust = 0.6745 * (log_val - median(log_val, na.rm = TRUE)) /
-        mad(log_val, na.rm = TRUE),
-      outlier = if_else(!is.na(z_robust) & z_robust > cutoff, TRUE, FALSE)
-    )
-  
-  n_out <- sum(df_flagged$outlier, na.rm = TRUE)
-  message(n_out, ' outlier(s) flagged in ', col_name)
-  
-  # compute percentage above
-  pct_above <- mean(df_flagged$z_robust > cutoff, na.rm = TRUE)
-  if (pct_above > 0) {
-    message(sprintf('%.3f%% of data above %.2f MAD threshold', pct_above * 100, cutoff))
-  } else {
-    message(sprintf('No data above %.2f MAD threshold', cutoff))
-  }
-  
-  df_out <- df
-  
-  if(add_flag){
-    # update QualityCheck column
-    qc_update <- df_flagged %>%
-      mutate(
-        QualityCheck_clean = str_remove_all(QualityCheck, paste0('\\s*;?\\s*Outlier', switch_label)) %>%
-          str_squish() %>%
-          na_if(''),
-        QualityCheck_clean = case_when(
-          is.na(QualityCheck_clean) ~ 'NoCode',
-          TRUE ~ QualityCheck_clean
-        ),
-        QualityCheck_new = case_when(
-          outlier & QualityCheck_clean == 'NoCode' ~ paste0('Outlier', switch_label),
-          outlier & QualityCheck_clean != 'NoCode' ~ paste(QualityCheck_clean, paste0('Outlier', switch_label), sep = '; '),
-          TRUE ~ QualityCheck_clean
-        ) %>%
-          gsub('^;\\s*|NA;\\s*', '', .)
-      ) %>%
-      pull(QualityCheck_new)
-    
-    # overwrite QualityCheck in original df
-    df_out$QualityCheck <- qc_update
-  } 
-  
-  # optional plot
-  if (show_plot) {
-    p <- df_flagged %>%
-      filter(!is.na(!!col)) %>%
-      mutate(x_index = cumsum(!is.na(!!col))) %>%
-      ggplot(aes(x = x_index, y = !!col)) +
-      geom_point(aes(fill = outlier), color = 'black', shape = 21, size = 2.5) +
-      scale_fill_manual(values = c('FALSE' = 'white', 'TRUE' = 'red')) +
-      labs(
-        y = col_name,
-        x = NULL,
-        title = paste('Flagged outliers in', col_name)
-      ) +
-      theme_minimal()
-    print(p)
-  }
-  
-  # add log of flagged rows
-  existing_log <- attr(df, 'log')
-  outlier_rows <- df_out %>%
-    filter(str_detect(QualityCheck, paste0('Outlier', switch_label))) %>%
-    select(Date, !!station, Taxon, !!col, QualityCheck, any_of('Notes'))
-  
-  attr(df_out, 'log') <- c(
-    existing_log,
-    setNames(list(outlier_rows), paste0('outlier_', tolower(switch_label)))
-  )
-  
-  return(df_out)
-}
-
 
 #' @title Add Debris Level from Comments
 #'

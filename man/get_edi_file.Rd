@@ -2,19 +2,37 @@
 % Please edit documentation in R/global_funcs.R
 \name{get_edi_file}
 \alias{get_edi_file}
-\title{Download and read specific files from an EDI data package}
+\title{Download and read a specific file from an EDI data package}
 \usage{
-get_edi_file(pkg_id, fname)
+get_edi_file(
+  pkg_id,
+  fname,
+  scope = "edi",
+  match_type = c("exact", "regex"),
+  col_types = NULL,
+  key_name = "EDI_API_KEY",
+  pause = 0.3
+)
 }
 \arguments{
-\item{pkg_id}{The EDI package ID (e.g., "1017")}
+\item{pkg_id}{The EDI package ID (e.g., "1017").}
 
-\item{fname}{A filename (or fragment) to match against package entities}
+\item{fname}{A filename (or fragment) to match against package entities.}
+
+\item{scope}{EDI scope; defaults to "edi".}
+
+\item{match_type}{Whether \code{fname} is matched exactly or as a regex.}
+
+\item{col_types}{Optional column specification passed to \code{\link[readr:read_csv]{readr::read_csv()}}.}
+
+\item{key_name}{Name of the environment variable holding the EDI API key.}
+
+\item{pause}{Seconds to wait between entity-name lookups.}
 }
 \value{
-A named list of dataframes, where each name corresponds to a matched filename
+A dataframe.
 }
 \description{
-Downloads specified files by name from the latest revision of an EDI data package,
-and reads them into a named list of dataframes.
+Downloads a file by name from the latest revision of an EDI data package
+and reads it into a dataframe.
 }
