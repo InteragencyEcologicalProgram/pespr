@@ -1779,6 +1779,9 @@ higher_lvl_taxa <- function(df, after_col = NULL, std_type) {
 #'   Default is `c("Date", "Station")`.
 #' @param measurement_cols Character vector of numeric columns to sum within each group.
 #'   Default is `c("Biovolume_per_mL", "Units_per_mL", "Cells_per_mL")`.
+#' @param log_conflicts Logical; whether to compute the `combined_conflicts` log.
+#'   This requires an extra pass over every carried column and can be slow on large
+#'   inputs. Default `TRUE`.
 #'
 #' @return
 #' A dataframe where duplicate or size-variant taxon rows within a sampling event
@@ -1804,19 +1807,19 @@ higher_lvl_taxa <- function(df, after_col = NULL, std_type) {
 #'   remains `NA` if all source values were missing
 #'
 #' @importFrom data.table as.data.table uniqueN melt fifelse
-#' @importFrom dplyr first
 #' @importFrom stringr str_squish str_detect
 #' @importFrom stats na.omit
 #' @export
 combine_taxa <- function(df,
                          key_cols = c('Date','Station'),
-                         measurement_cols = c('Biovolume_per_mL','Units_per_mL','Cells_per_mL')) {
+                         measurement_cols = c('Biovolume_per_mL','Units_per_mL','Cells_per_mL'),
+                         log_conflicts = TRUE) {
   
   # suppress data.table progress bar
   old_opt <- getOption('datatable.showProgress')
   options(datatable.showProgress = FALSE)
   on.exit(options(datatable.showProgress = old_opt), add = TRUE)
-
+  
   original_cols <- names(df)
   message('Combining on key_cols: ', paste(key_cols, collapse = ', '))
   
@@ -1913,13 +1916,16 @@ combine_taxa <- function(df,
     # combine measurement results
     for (nm in names(sums)) list_vals[[nm]] <- sums[[nm]]
     
-    # carry columns
-    for (col in carry_cols) list_vals[[col]] <- first(get(col))
-    
     list_vals
   },
   by = group_cols,
   .SDcols = measurement_cols, verbose = FALSE]
+  
+  # --- carry columns: first row per group, joined back in one pass ---
+  if (length(carry_cols)) {
+    carry_first <- DT[, .SD[1L], by = group_cols, .SDcols = carry_cols]
+    DT_out <- carry_first[DT_out, on = group_cols]
+  }
   
   # --- append MultipleEntries notes ---
   DT_out[, Notes := fifelse(
@@ -1936,7 +1942,7 @@ combine_taxa <- function(df,
   combine_log <- DT[, .N, by = group_cols][N > 1]
   
   conflict_log <- NULL
-  if (length(carry_cols)) {
+  if (log_conflicts && length(carry_cols)) {
     conflict_log <- DT[, lapply(.SD, function(x) uniqueN(x, na.rm = TRUE)),
                        by = group_cols, .SDcols = carry_cols]
     conflict_log <- melt(conflict_log,
@@ -1958,7 +1964,6 @@ combine_taxa <- function(df,
   
   return(as.data.frame(DT_out))
 }
-
 
 #' @title Remove taxonomic classification columns
 #'

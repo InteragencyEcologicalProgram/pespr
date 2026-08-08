@@ -7,7 +7,8 @@
 combine_taxa(
   df,
   key_cols = c("Date", "Station"),
-  measurement_cols = c("Biovolume_per_mL", "Units_per_mL", "Cells_per_mL")
+  measurement_cols = c("Biovolume_per_mL", "Units_per_mL", "Cells_per_mL"),
+  log_conflicts = TRUE
 )
 }
 \arguments{
@@ -20,6 +21,10 @@ Default is \code{c("Date", "Station")}.}
 
 \item{measurement_cols}{Character vector of numeric columns to sum within each group.
 Default is \code{c("Biovolume_per_mL", "Units_per_mL", "Cells_per_mL")}.}
+
+\item{log_conflicts}{Logical; whether to compute the \code{combined_conflicts} log.
+This requires an extra pass over every carried column and can be slow on large
+inputs. Default \code{TRUE}.}
 }
 \value{
 A dataframe where duplicate or size-variant taxon rows within a sampling event
