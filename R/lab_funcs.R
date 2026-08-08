@@ -183,7 +183,7 @@ standardize_cols_bsa <- function(df, meta_df){
 
   df <- rename_cols_bsa(df)
 
-  df <- calc_units_bsa(df)
+  df <- calc_data_bsa(df)
 
   df <- clean_phytoform_bsa(df)
 

@@ -45,7 +45,7 @@ test_that('clean_unknowns standardizes unknown taxa correctly', {
   
   log_tbl <- attr(cleaned, 'log')$clean_unknowns
   expect_s3_class(log_tbl, 'tbl_df')
-  expect_true(all(c('OrigTaxon', 'UpdatedTaxon') %in% names(log_tbl)))
+  expect_true(all(c('Original Taxon', 'Updated Taxon') %in% names(log_tbl)))
   
   # confirm log only contains changed rows
   expect_true(all(log_tbl$OrigTaxon != log_tbl$UpdatedTaxon))
@@ -103,7 +103,7 @@ test_that('correct_taxon_typos standardizes and corrects taxa names properly', {
   
   log_tbl <- attr(cleaned, 'log')$taxon_corrections
   expect_s3_class(log_tbl, 'tbl_df')
-  expect_true(all(c('OrigTaxon', 'UpdatedTaxon') %in% names(log_tbl)))
+  expect_true(all(c('Original Taxon', 'Updated Taxon') %in% names(log_tbl)))
   
   # expected transformations
   expect_equal(cleaned$Taxon[1], 'Microcystis aeruginosa')
@@ -179,7 +179,7 @@ test_that('update_synonyms resolves and logs synonym chains correctly', {
   
   log_tbl <- attr(cleaned, 'log')$synonym_updates
   expect_s3_class(log_tbl, 'tbl_df')
-  expect_true(all(c('OrigTaxon', 'UpdatedTaxon') %in% names(log_tbl)))
+  expect_true(all(c('Original Taxon', 'Updated Taxon') %in% names(log_tbl)))
   
   # --- expected synonym resolutions ---
   expect_equal(cleaned$Taxon[1], 'Aulacoseira italica')                 # simple chain
